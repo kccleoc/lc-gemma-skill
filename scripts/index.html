@@ -1,104 +1,390 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Weather & Time Skill</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weather & Time Skill (Manual Location)</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    .card {
+      background: #1e293b;
+      border-radius: 20px;
+      padding: 28px 24px;
+      max-width: 380px;
+      width: 100%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .location {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .time-display {
+      font-size: 52px;
+      font-weight: 700;
+      letter-spacing: -2px;
+      color: #f8fafc;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .date-display {
+      font-size: 15px;
+      color: #94a3b8;
+      margin-bottom: 24px;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid #334155;
+      margin: 0 0 20px;
+    }
+    .weather-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .weather-icon {
+      font-size: 52px;
+      line-height: 1;
+    }
+    .temp-main {
+      font-size: 42px;
+      font-weight: 700;
+      color: #f8fafc;
+      line-height: 1;
+    }
+    .temp-unit {
+      font-size: 18px;
+      color: #94a3b8;
+    }
+    .condition {
+      font-size: 15px;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+    .details-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .detail-item {
+      background: #0f172a;
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+    .detail-label {
+      font-size: 11px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .detail-value {
+      font-size: 16px;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+    .error-msg {
+      color: #f87171;
+      font-size: 14px;
+      text-align: center;
+      padding: 20px 0;
+      line-height: 1.5;
+    }
+    .loading {
+      text-align: center;
+      color: #64748b;
+      font-size: 14px;
+      padding: 20px 0;
+    }
+    .tz-badge {
+      display: inline-block;
+      background: #334155;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 11px;
+      color: #94a3b8;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .hint {
+      margin-top: 14px;
+      font-size: 12px;
+      color: #64748b;
+      text-align: center;
+      line-height: 1.5;
+    }
+  </style>
 </head>
 <body>
+  <div class="card" id="card">
+    <div class="loading">Waiting for location input…</div>
+  </div>
 
-<!-- Gemma Edge Gallery Skill Definition -->
-<script type="application/json" id="skill">
-{
-  "name": "Weather & Time (manual location)",
-  "description": "Fetch the current weather and local time for a user-provided location.",
-  "version": "1.1.0",
-  "tools": [
-    {
-      "name": "get_weather_and_time",
-      "description": "Fetches the current local time and weather for a user-provided location string, such as a city name.",
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "location": {
-            "type": "string",
-            "description": "City or location name, e.g. 'Taipei, Taiwan' or 'Tokyo, Japan'."
-          }
-        },
-        "required": ["location"]
+  <script type="application/json" id="skill">
+  {
+    "name": "Weather & Time (manual location)",
+    "description": "Fetch the current weather and local time for a user-provided location.",
+    "version": "1.1.0",
+    "tools": [
+      {
+        "name": "get_weather_and_time",
+        "description": "Fetches the current local time and weather for a user-provided location string, such as a city name.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "location": {
+              "type": "string",
+              "description": "City or location name, e.g. 'Hong Kong', 'Taipei, Taiwan', or 'Tokyo, Japan'."
+            }
+          },
+          "required": ["location"]
+        }
       }
+    ]
+  }
+  </script>
+
+  <script>
+    function decodeWMO(code) {
+      const map = {
+        0:  ["☀️",  "Clear Sky"],
+        1:  ["🌤️", "Mainly Clear"],
+        2:  ["⛅",  "Partly Cloudy"],
+        3:  ["☁️",  "Overcast"],
+        45: ["🌫️", "Foggy"],
+        48: ["🌫️", "Icy Fog"],
+        51: ["🌦️", "Light Drizzle"],
+        53: ["🌦️", "Drizzle"],
+        55: ["🌧️", "Heavy Drizzle"],
+        61: ["🌧️", "Light Rain"],
+        63: ["🌧️", "Rain"],
+        65: ["🌧️", "Heavy Rain"],
+        71: ["🌨️", "Light Snow"],
+        73: ["🌨️", "Snow"],
+        75: ["❄️",  "Heavy Snow"],
+        77: ["🌨️", "Snow Grains"],
+        80: ["🌦️", "Light Showers"],
+        81: ["🌧️", "Showers"],
+        82: ["⛈️",  "Heavy Showers"],
+        85: ["🌨️", "Snow Showers"],
+        86: ["🌨️", "Heavy Snow Showers"],
+        95: ["⛈️",  "Thunderstorm"],
+        96: ["⛈️",  "Thunderstorm w/ Hail"],
+        99: ["⛈️",  "Severe Thunderstorm"]
+      };
+      return map[code] ?? ["🌡️", "Unknown"];
     }
-  ]
-}
-</script>
-  
-<main>
-  <h1>Weather &amp; Time Skill</h1>
 
-  <section>
-    <h2>Purpose</h2>
-    <p>
-      You have access to a live tool that fetches the user’s current local time and weather.
-      Always use it before answering any question about:
-    </p>
-    <ul>
-      <li>The current time, hour, or minute</li>
-      <li>Today’s date, day of the week, or month</li>
-      <li>The current weather, temperature, or conditions</li>
-      <li>Whether it is morning, afternoon, evening, or night</li>
-    </ul>
-  </section>
+    function pad(n) {
+      return String(n).padStart(2, "0");
+    }
 
-  <section>
-    <h2>How to Invoke the Skill</h2>
-    <p>
-      Call the tool <code>get_weather_and_time</code> with no parameters.
-      The app will automatically detect the device location.
-    </p>
-    <p>Pass this exact JSON to the tool:</p>
-    <pre><code>{
-}</code></pre>
-  </section>
+    function formatTimeFromISO(localIsoString) {
+      const m = localIsoString.match(/T(\d{2}):(\d{2})/);
+      if (!m) return "Unknown";
+      let h = Number(m[1]);
+      const min = m[2];
+      const ampm = h >= 12 ? "PM" : "AM";
+      h = h % 12 || 12;
+      return `${h}:${min} ${ampm}`;
+    }
 
-  <section>
-    <h2>What You Receive Back</h2>
-    <p>The tool returns a plain-text context string, for example:</p>
-    <pre><code>Current time: Wednesday, April 9 2026, 3:42 PM (JST, UTC+9)
-Location: Tokyo, Japan
-Weather: 18°C (64°F), Partly Cloudy
-Humidity: 62% | Wind: 12 km/h NE
-Feels like: 16°C (61°F)</code></pre>
-  </section>
+    function formatDateFromISO(localIsoString) {
+      const d = new Date(localIsoString);
+      if (Number.isNaN(d.getTime())) return localIsoString;
+      const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+      const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+      return `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
+    }
 
-  <section>
-    <h2>How to Answer</h2>
-    <ul>
-      <li>Read the context string carefully.</li>
-      <li>Answer the user’s question directly using the data provided.</li>
-      <li>Do not say you cannot access real-time data; you have the data from the tool.</li>
-      <li>Use natural, conversational language, for example:
-        <ul>
-          <li>“It’s 3:42 PM on Wednesday, April 9th.”</li>
-          <li>“It’s 18°C and partly cloudy in your area right now.”</li>
-          <li>“Good afternoon! It’s currently mid-afternoon and a bit chilly at 18°C.”</li>
-        </ul>
-      </li>
-      <li>If the user asks a time-of-day concept like “is it morning?”, reason from the hour in the context.</li>
-      <li>Always mention the timezone if the user might be curious.</li>
-    </ul>
-  </section>
+    function getHourFromISO(localIsoString) {
+      const m = localIsoString.match(/T(\d{2}):/);
+      return m ? Number(m[1]) : null;
+    }
 
-  <section>
-    <h2>Important Rules</h2>
-    <ul>
-      <li>Never guess or make up a time or weather; always wait for the tool result.</li>
-      <li>Never say your knowledge cutoff prevents you from knowing the time — the tool solves this.</li>
-      <li>
-        If the tool returns an error, tell the user politely that location access may be needed and suggest enabling it.
-      </li>
-    </ul>
-  </section>
-</main>
+    function windDir(deg) {
+      const dirs = ["N","NE","E","SE","S","SW","W","NW"];
+      return dirs[Math.round(deg / 45) % 8];
+    }
 
+    function normalizeLocationName(hit) {
+      const parts = [hit.name];
+      if (hit.admin1 && hit.admin1 !== hit.name) parts.push(hit.admin1);
+      if (hit.country) parts.push(hit.country);
+      return parts.filter(Boolean).join(", ");
+    }
+
+    function renderCard({ timeStr, dateStr, tzName, utcOffsetHours, locationName, tempC, feelsC, humidity, windSpeed, windDirStr, wxEmoji, wxLabel }) {
+      document.getElementById("card").innerHTML = `
+        <div class="location">📍 ${escapeHtml(locationName)} <span class="tz-badge">${escapeHtml(tzName)}${utcOffsetHours !== null ? `, UTC${utcOffsetHours >= 0 ? "+" : ""}${utcOffsetHours}` : ""}</span></div>
+        <div class="time-display">${escapeHtml(timeStr)}</div>
+        <div class="date-display">${escapeHtml(dateStr)}</div>
+        <hr class="divider">
+        <div class="weather-row">
+          <div class="weather-icon">${wxEmoji}</div>
+          <div>
+            <div class="temp-main">${tempC}°<span class="temp-unit">C</span></div>
+            <div class="condition">${escapeHtml(wxLabel)}</div>
+          </div>
+        </div>
+        <div class="details-grid">
+          <div class="detail-item">
+            <div class="detail-label">Feels Like</div>
+            <div class="detail-value">${feelsC}°C</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Humidity</div>
+            <div class="detail-value">${humidity}%</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Wind</div>
+            <div class="detail-value">${windSpeed} km/h</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Direction</div>
+            <div class="detail-value">${escapeHtml(windDirStr)}</div>
+          </div>
+        </div>
+        <div class="hint">Powered by Open-Meteo geocoding + forecast APIs.</div>
+      `;
+    }
+
+    function renderError(msg) {
+      document.getElementById("card").innerHTML = `
+        <div class="error-msg">⚠️ ${escapeHtml(msg)}</div>
+        <div class="hint">Try a more specific location such as “Hong Kong”, “Taipei, Taiwan”, or “Central, Hong Kong”.</div>
+      `;
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, c => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[c]));
+    }
+
+    async function geocodeLocation(location) {
+      const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Geocoding API error: ${res.status}`);
+      const data = await res.json();
+      if (!data.results || !data.results.length) {
+        throw new Error(`Location not found: ${location}`);
+      }
+      return data.results[0];
+    }
+
+    async function fetchWeather(lat, lon) {
+      const weatherUrl =
+        `https://api.open-meteo.com/v1/forecast` +
+        `?latitude=${encodeURIComponent(lat)}` +
+        `&longitude=${encodeURIComponent(lon)}` +
+        `&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m` +
+        `&timezone=auto` +
+        `&temperature_unit=celsius` +
+        `&wind_speed_unit=kmh`;
+
+      const res = await fetch(weatherUrl);
+      if (!res.ok) throw new Error(`Weather API error: ${res.status}`);
+      return await res.json();
+    }
+
+    window.ai_edge_gallery_get_result = async function(data) {
+      try {
+        const parsed = typeof data === "string" ? JSON.parse(data || "{}") : (data || {});
+        const location = (parsed.location || "").trim();
+
+        if (!location) {
+          throw new Error("Missing required field: location");
+        }
+
+        const geo = await geocodeLocation(location);
+        const weather = await fetchWeather(geo.latitude, geo.longitude);
+
+        const cur = weather.current;
+        if (!cur) throw new Error("Weather data unavailable.");
+
+        const locationName = normalizeLocationName(geo);
+        const tzName = weather.timezone_abbreviation || weather.timezone || geo.timezone || "local";
+        const utcOffsetHours = weather.utc_offset_seconds != null ? weather.utc_offset_seconds / 3600 : null;
+
+        const localTimeIso = cur.time;
+        const timeStr = formatTimeFromISO(localTimeIso);
+        const dateStr = formatDateFromISO(localTimeIso);
+        const hour = getHourFromISO(localTimeIso);
+
+        let timeOfDay = "unknown";
+        if (hour !== null) {
+          timeOfDay = "morning";
+          if (hour >= 12 && hour < 17) timeOfDay = "afternoon";
+          else if (hour >= 17 && hour < 21) timeOfDay = "evening";
+          else if (hour >= 21 || hour < 6) timeOfDay = "night";
+        }
+
+        const tempC = Math.round(cur.temperature_2m);
+        const feelsC = Math.round(cur.apparent_temperature);
+        const tempF = Math.round(tempC * 9 / 5 + 32);
+        const feelsF = Math.round(feelsC * 9 / 5 + 32);
+        const humidity = Math.round(cur.relative_humidity_2m);
+        const windSpeed = Math.round(cur.wind_speed_10m);
+        const windDirStr = windDir(cur.wind_direction_10m);
+        const [wxEmoji, wxLabel] = decodeWMO(cur.weather_code);
+
+        const contextText =
+          `Location: ${locationName}\n` +
+          `Current time: ${dateStr}, ${timeStr} (${tzName}${utcOffsetHours !== null ? `, UTC${utcOffsetHours >= 0 ? "+" : ""}${utcOffsetHours}` : ""})\n` +
+          `Time of day: ${timeOfDay}\n` +
+          `Weather: ${tempC}°C (${tempF}°F), ${wxLabel}\n` +
+          `Feels like: ${feelsC}°C (${feelsF}°F)\n` +
+          `Humidity: ${humidity}%\n` +
+          `Wind: ${windSpeed} km/h ${windDirStr}`;
+
+        renderCard({
+          timeStr,
+          dateStr,
+          tzName,
+          utcOffsetHours,
+          locationName,
+          tempC,
+          feelsC,
+          humidity,
+          windSpeed,
+          windDirStr,
+          wxEmoji,
+          wxLabel
+        });
+
+        return JSON.stringify({ result: contextText });
+      } catch (err) {
+        const msg = err && err.message ? err.message : "Unknown error";
+        renderError(msg);
+        return JSON.stringify({ error: msg });
+      }
+    };
+
+    if (!window._calledByApp) {
+      window.ai_edge_gallery_get_result(JSON.stringify({ location: "Hong Kong" }))
+        .then(r => console.log("Skill result:", r));
+    }
+  </script>
 </body>
 </html>
