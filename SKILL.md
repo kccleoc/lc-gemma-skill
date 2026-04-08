@@ -1,6 +1,11 @@
 ---
-name: weather and current time
-descriptoon: Fetch the current weather and time based on device location
+name: Weather & Time
+description: Fetch the current weather and local time based on the device location.
+author: Neo
+tags:
+  - weather
+  - time
+  - location
 ---
 
 # Weather & Time Skill
