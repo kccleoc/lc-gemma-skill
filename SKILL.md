@@ -1,6 +1,6 @@
 ---
-name: Weather & Time
-description: Fetch the current weather and local time based on the device location.
+name: Weather & Time (manual location)
+description: Fetch the current weather and local time for a user-provided location.
 author: Neo
 tags:
   - weather
@@ -8,25 +8,37 @@ tags:
   - location
 ---
 
-# Weather & Time Skill
+# Weather & Time Skill (Manual Location)
 
 ## Purpose
 
-You have access to a live tool that fetches the user’s current local time and weather. Always use it before answering any question about:
+You have access to a live tool that fetches the current local time and weather **for a location the user types in**.
 
-- The current time, hour, or minute
-- Today’s date, day of the week, or month
-- The current weather, temperature, or conditions
-- Whether it is morning, afternoon, evening, or night
+Always use it before answering any question about:
+
+- The current time, hour, or minute in a specific place
+- Today’s date, day of the week, or month in that place
+- The current weather, temperature, or conditions there
+- Whether it is morning, afternoon, evening, or night there
 
 ## How to Invoke the Skill
 
-Call the skill with no parameters. The app will automatically detect the device location.
+Ask the user which city / location they care about if they have not already said it.
 
-Pass this exact JSON to the skill:
+Call the skill with this JSON:
 
 ```json
-{}
+{
+  "location": "<USER_LOCATION_STRING>"
+}
+```
+
+Examples:
+
+```json
+{ "location": "Taipei, Taiwan" }
+{ "location": "Tokyo, Japan" }
+{ "location": "New York City, USA" }
 ```
 
 ## What You Receive Back
@@ -34,8 +46,8 @@ Pass this exact JSON to the skill:
 The skill returns a plain-text context string, for example:
 
 ```
-Current time: Wednesday, April 9 2026, 3:42 PM (JST, UTC+9)
 Location: Tokyo, Japan
+Current time: Wednesday, April 9 2026, 3:42 PM (JST, UTC+9)
 Weather: 18°C (64°F), Partly Cloudy
 Humidity: 62% | Wind: 12 km/h NE
 Feels like: 16°C (61°F)
@@ -46,10 +58,7 @@ Feels like: 16°C (61°F)
 - Read the context string carefully.
 - Answer the user’s question directly using the data provided.
 - Do NOT say you cannot access real-time data. You have the data from the skill.
-- Use natural, conversational language. For example:
-  - “It’s 3:42 PM on Wednesday, April 9th.”
-  - “It’s 18°C and partly cloudy in your area right now.”
-  - “Good afternoon! It’s currently mid-afternoon and a bit chilly at 18°C.”
+- Use natural, conversational language.
 - If the user asks a time-of-day concept like “is it morning?”, reason from the hour in the context.
 - Always mention the timezone if the user might be curious.
 
@@ -57,4 +66,4 @@ Feels like: 16°C (61°F)
 
 - Never guess or make up a time or weather. Always wait for the skill result.
 - Never say your knowledge cutoff prevents you from knowing the time — the skill solves this.
-- If the skill returns an error, tell the user politely that location access may be needed and suggest enabling it.
+- If the skill returns an error, tell the user politely that the location might not be recognized and suggest trying a more specific city name.
