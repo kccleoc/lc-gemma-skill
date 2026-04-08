@@ -1,8 +1,7 @@
 ---
-name: weather-and-time
-description: Provides the current local date, time, and weather conditions for the user’s location. Use this skill whenever the user asks what time it is, what day it is, what the weather is like, if it is hot or cold, or any question that requires knowing the current time or weather.
+name: weather and current time
+descriptoon: Fetch the current weather and time based on device location
 ---
-
 
 # Weather & Time Skill
 
