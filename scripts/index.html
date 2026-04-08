@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Weather & Time Skill (Manual Location)</title>
+  <title>Weather & Time Skill</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -106,22 +106,6 @@
       padding: 20px 0;
       line-height: 1.5;
     }
-    .loading {
-      text-align: center;
-      color: #64748b;
-      font-size: 14px;
-      padding: 20px 0;
-    }
-    .tz-badge {
-      display: inline-block;
-      background: #334155;
-      border-radius: 6px;
-      padding: 2px 8px;
-      font-size: 11px;
-      color: #94a3b8;
-      margin-left: 6px;
-      vertical-align: middle;
-    }
     .hint {
       margin-top: 14px;
       font-size: 12px;
@@ -133,40 +117,16 @@
 </head>
 <body>
   <div class="card" id="card">
-    <div class="loading">Waiting for location input…</div>
+    <div class="hint">Waiting for location input…</div>
   </div>
-
-  <script type="application/json" id="skill">
-  {
-    "name": "Weather & Time (manual location)",
-    "description": "Fetch the current weather and local time for a user-provided location.",
-    "version": "1.1.0",
-    "tools": [
-      {
-        "name": "get_weather_and_time",
-        "description": "Fetches the current local time and weather for a user-provided location string, such as a city name.",
-        "input_schema": {
-          "type": "object",
-          "properties": {
-            "location": {
-              "type": "string",
-              "description": "City or location name, e.g. 'Hong Kong', 'Taipei, Taiwan', or 'Tokyo, Japan'."
-            }
-          },
-          "required": ["location"]
-        }
-      }
-    ]
-  }
-  </script>
 
   <script>
     function decodeWMO(code) {
       const map = {
-        0:  ["☀️",  "Clear Sky"],
-        1:  ["🌤️", "Mainly Clear"],
-        2:  ["⛅",  "Partly Cloudy"],
-        3:  ["☁️",  "Overcast"],
+        0: ["☀️", "Clear Sky"],
+        1: ["🌤️", "Mainly Clear"],
+        2: ["⛅", "Partly Cloudy"],
+        3: ["☁️", "Overcast"],
         45: ["🌫️", "Foggy"],
         48: ["🌫️", "Icy Fog"],
         51: ["🌦️", "Light Drizzle"],
@@ -177,22 +137,28 @@
         65: ["🌧️", "Heavy Rain"],
         71: ["🌨️", "Light Snow"],
         73: ["🌨️", "Snow"],
-        75: ["❄️",  "Heavy Snow"],
+        75: ["❄️", "Heavy Snow"],
         77: ["🌨️", "Snow Grains"],
         80: ["🌦️", "Light Showers"],
         81: ["🌧️", "Showers"],
-        82: ["⛈️",  "Heavy Showers"],
+        82: ["⛈️", "Heavy Showers"],
         85: ["🌨️", "Snow Showers"],
         86: ["🌨️", "Heavy Snow Showers"],
-        95: ["⛈️",  "Thunderstorm"],
-        96: ["⛈️",  "Thunderstorm w/ Hail"],
-        99: ["⛈️",  "Severe Thunderstorm"]
+        95: ["⛈️", "Thunderstorm"],
+        96: ["⛈️", "Thunderstorm w/ Hail"],
+        99: ["⛈️", "Severe Thunderstorm"]
       };
-      return map[code] ?? ["🌡️", "Unknown"];
+      return map[code] || ["🌡️", "Unknown"];
     }
 
-    function pad(n) {
-      return String(n).padStart(2, "0");
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, c => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[c]));
     }
 
     function formatTimeFromISO(localIsoString) {
@@ -232,9 +198,9 @@
 
     function renderCard({ timeStr, dateStr, tzName, utcOffsetHours, locationName, tempC, feelsC, humidity, windSpeed, windDirStr, wxEmoji, wxLabel }) {
       document.getElementById("card").innerHTML = `
-        <div class="location">📍 ${escapeHtml(locationName)} <span class="tz-badge">${escapeHtml(tzName)}${utcOffsetHours !== null ? `, UTC${utcOffsetHours >= 0 ? "+" : ""}${utcOffsetHours}` : ""}</span></div>
+        <div class="location">📍 ${escapeHtml(locationName)}</div>
         <div class="time-display">${escapeHtml(timeStr)}</div>
-        <div class="date-display">${escapeHtml(dateStr)}</div>
+        <div class="date-display">${escapeHtml(dateStr)} · ${escapeHtml(tzName)}${utcOffsetHours !== null ? ` (UTC${utcOffsetHours >= 0 ? "+" : ""}${utcOffsetHours})` : ""}</div>
         <hr class="divider">
         <div class="weather-row">
           <div class="weather-icon">${wxEmoji}</div>
@@ -261,7 +227,7 @@
             <div class="detail-value">${escapeHtml(windDirStr)}</div>
           </div>
         </div>
-        <div class="hint">Powered by Open-Meteo geocoding + forecast APIs.</div>
+        <div class="hint">Powered by Open-Meteo.</div>
       `;
     }
 
@@ -270,16 +236,6 @@
         <div class="error-msg">⚠️ ${escapeHtml(msg)}</div>
         <div class="hint">Try a more specific location such as “Hong Kong”, “Taipei, Taiwan”, or “Central, Hong Kong”.</div>
       `;
-    }
-
-    function escapeHtml(str) {
-      return String(str).replace(/[&<>"']/g, c => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;"
-      }[c]));
     }
 
     async function geocodeLocation(location) {
@@ -294,7 +250,7 @@
     }
 
     async function fetchWeather(lat, lon) {
-      const weatherUrl =
+      const url =
         `https://api.open-meteo.com/v1/forecast` +
         `?latitude=${encodeURIComponent(lat)}` +
         `&longitude=${encodeURIComponent(lon)}` +
@@ -303,26 +259,23 @@
         `&temperature_unit=celsius` +
         `&wind_speed_unit=kmh`;
 
-      const res = await fetch(weatherUrl);
+      const res = await fetch(url);
       if (!res.ok) throw new Error(`Weather API error: ${res.status}`);
       return await res.json();
     }
 
     window.ai_edge_gallery_get_result = async function(data) {
       try {
-        const parsed = typeof data === "string" ? JSON.parse(data || "{}") : (data || {});
-        const location = (parsed.location || "").trim();
-
-        if (!location) {
-          throw new Error("Missing required field: location");
-        }
+        const jsonData = JSON.parse(data || "{}");
+        const location = (jsonData.location || "").trim();
+        if (!location) throw new Error("Missing required field: location");
 
         const geo = await geocodeLocation(location);
         const weather = await fetchWeather(geo.latitude, geo.longitude);
 
-        const cur = weather.current;
-        if (!cur) throw new Error("Weather data unavailable.");
+        if (!weather.current) throw new Error("Weather data unavailable.");
 
+        const cur = weather.current;
         const locationName = normalizeLocationName(geo);
         const tzName = weather.timezone_abbreviation || weather.timezone || geo.timezone || "local";
         const utcOffsetHours = weather.utc_offset_seconds != null ? weather.utc_offset_seconds / 3600 : null;
@@ -349,15 +302,6 @@
         const windDirStr = windDir(cur.wind_direction_10m);
         const [wxEmoji, wxLabel] = decodeWMO(cur.weather_code);
 
-        const contextText =
-          `Location: ${locationName}\n` +
-          `Current time: ${dateStr}, ${timeStr} (${tzName}${utcOffsetHours !== null ? `, UTC${utcOffsetHours >= 0 ? "+" : ""}${utcOffsetHours}` : ""})\n` +
-          `Time of day: ${timeOfDay}\n` +
-          `Weather: ${tempC}°C (${tempF}°F), ${wxLabel}\n` +
-          `Feels like: ${feelsC}°C (${feelsF}°F)\n` +
-          `Humidity: ${humidity}%\n` +
-          `Wind: ${windSpeed} km/h ${windDirStr}`;
-
         renderCard({
           timeStr,
           dateStr,
@@ -373,18 +317,22 @@
           wxLabel
         });
 
-        return JSON.stringify({ result: contextText });
-      } catch (err) {
-        const msg = err && err.message ? err.message : "Unknown error";
+        const resultText =
+          `Location: ${locationName}\n` +
+          `Current time: ${dateStr}, ${timeStr} (${tzName}${utcOffsetHours !== null ? `, UTC${utcOffsetHours >= 0 ? "+" : ""}${utcOffsetHours}` : ""})\n` +
+          `Time of day: ${timeOfDay}\n` +
+          `Weather: ${tempC}°C (${tempF}°F), ${wxLabel}\n` +
+          `Feels like: ${feelsC}°C (${feelsF}°F)\n` +
+          `Humidity: ${humidity}%\n` +
+          `Wind: ${windSpeed} km/h ${windDirStr}`;
+
+        return JSON.stringify({ result: resultText });
+      } catch (e) {
+        const msg = e && e.message ? e.message : "Unknown error";
         renderError(msg);
-        return JSON.stringify({ error: msg });
+        return JSON.stringify({ error: `Failed: ${msg}` });
       }
     };
-
-    if (!window._calledByApp) {
-      window.ai_edge_gallery_get_result(JSON.stringify({ location: "Hong Kong" }))
-        .then(r => console.log("Skill result:", r));
-    }
   </script>
 </body>
 </html>
